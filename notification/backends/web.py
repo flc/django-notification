@@ -13,6 +13,10 @@ class WebBackend(NotificationBackend):
         """
         # TODO can't do this at the top or we get circular imports
         from notification.models import Notice
+
+        if not self.should_send(sender, recipient, notice_type):
+            on_site = False
+
         Notice.objects.create(recipient=recipient,
                 message=self.format_message(notice_type.label,
                         'notice.html', context),

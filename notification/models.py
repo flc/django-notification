@@ -49,7 +49,7 @@ class NoticeType(models.Model):
 
     def __unicode__(self):
         return self.label
-    
+
     class Meta:
         verbose_name = _("notice type")
         verbose_name_plural = _("notice types")
@@ -97,10 +97,10 @@ class NoticeManager(models.Manager):
             sent=False):
         """
         returns Notice objects for the given user.
-        
+
         If archived=False, it only include notices not archived.
         If archived=True, it returns all notices for that user.
-        
+
         If unseen=None, it includes all notices.
         If unseen=True, return only unseen notices.
         If unseen=False, return only seen notices.
@@ -145,7 +145,7 @@ class GzippedDictField(models.TextField):
     value is a dictionary.
     """
     __metaclass__ = models.SubfieldBase
- 
+
     def to_python(self, value):
         if isinstance(value, basestring) and value:
             value = pickle.loads(base64.b64decode(value).decode('zlib'))
@@ -156,7 +156,7 @@ class GzippedDictField(models.TextField):
     def get_prep_value(self, value):
         if value is None: return
         return base64.b64encode(pickle.dumps(value).encode('zlib'))
- 
+
     def value_to_string(self, obj):
         value = self._get_val_from_obj(obj)
         return self.get_db_prep_value(value)
@@ -169,7 +169,7 @@ class GzippedDictField(models.TextField):
         return (field_class, args, kwargs)
 
 class Notice(models.Model):
-    
+
     recipient = models.ForeignKey(User, related_name="recieved_notices", verbose_name=_("recipient"))
     sender = models.ForeignKey(User, null=True, related_name="sent_notices", verbose_name=_("sender"))
     message = models.TextField(_("message"))
@@ -179,25 +179,25 @@ class Notice(models.Model):
     archived = models.BooleanField(_("archived"), default=False)
     on_site = models.BooleanField(_("on site"))
     data = GzippedDictField(blank=True, null=True)
-    
+
     content_type = models.ForeignKey(ContentType, null=True, blank=True)
     object_id = models.PositiveIntegerField(null=True, blank=True)
     content_object = generic.GenericForeignKey('content_type', 'object_id')
-	
-    
+
+
     objects = NoticeManager()
-    
+
     def __unicode__(self):
         return self.message
-    
+
     def archive(self):
         self.archived = True
         self.save()
-    
+
     def is_unseen(self):
         """
         returns value of self.unseen but also changes it to false.
-        
+
         Use this in a template to mark an unseen notice differently the first
         time it is shown.
         """
@@ -206,12 +206,12 @@ class Notice(models.Model):
             self.unseen = False
             self.save()
         return unseen
-    
+
     class Meta:
         ordering = ["-added"]
         verbose_name = _("notice")
         verbose_name_plural = _("notices")
-    
+
     def get_absolute_url(self):
         return reverse("notification_notice", args=[str(self.pk)])
 
@@ -227,7 +227,7 @@ class NoticeQueueBatch(models.Model):
 def create_notice_type(label, display, description, default=2, verbosity=1):
     """
     Creates a new NoticeType.
-    
+
     This is intended to be used by other apps as a post_syncdb manangement step.
     """
     try:
@@ -275,9 +275,9 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None,
         **kwargs):
     """
     Creates a new notice.
-    
+
     This is intended to be how other apps create new notices.
-    
+
     notification.send(user, "friends_invite_sent", {
         "spam": "eggs",
         "foo": "bar",
@@ -308,11 +308,11 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None,
             language = get_notification_language(user)
         except LanguageStoreNotAvailable:
             language = None
-        
+
         if language is not None:
             # activate the user's language
             activate(language)
-        
+
         # update context with user specific translations
         context = Context({
             "recipient": user,
@@ -378,7 +378,7 @@ def queue(users, label, extra_context=None, on_site=True, sender=None,
 
 
 class ObservedItemManager(models.Manager):
-    
+
     def all_for(self, observed, signal):
         """
         Returns all ObservedItems for an observed object,
@@ -388,7 +388,7 @@ class ObservedItemManager(models.Manager):
         observed_items = self.filter(content_type=content_type,
                 object_id=observed.id, signal=signal)
         return observed_items
-    
+
     def get_for(self, observed, observer, signal):
         content_type = ContentType.objects.get_for_model(observed)
         observed_item = self.get(content_type=content_type,
@@ -397,27 +397,27 @@ class ObservedItemManager(models.Manager):
 
 
 class ObservedItem(models.Model):
-    
+
     user = models.ForeignKey(User, verbose_name=_("user"))
-    
+
     content_type = models.ForeignKey(ContentType)
     object_id = models.PositiveIntegerField()
     observed_object = generic.GenericForeignKey("content_type", "object_id")
-    
+
     notice_type = models.ForeignKey(NoticeType, verbose_name=_("notice type"))
-    
+
     added = models.DateTimeField(_("added"), default=datetime.datetime.now)
-    
+
     # the signal that will be listened to send the notice
     signal = models.TextField(verbose_name=_("signal"))
-    
+
     objects = ObservedItemManager()
-    
+
     class Meta:
         ordering = ["-added"]
         verbose_name = _("observed item")
         verbose_name_plural = _("observed items")
-    
+
     def send_notice(self, extra_context=None):
         if extra_context is None:
             extra_context = {}

@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="django-notification",
-    version=__import__("notification").__version__,
+    version='0.2a1.dev4',
     description="User notification management for the Django web framework",
     long_description=open("docs/usage.txt").read(),
     author="James Tauber",

@@ -1,4 +1,4 @@
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from django.http import HttpResponse
 from django.conf import settings
 
@@ -46,7 +46,7 @@ def basic_auth_required(realm=None, test_func=None, callback_func=None):
             
             # Not logged in, look if login credentials are provided
             if "HTTP_AUTHORIZATION" in request.META:
-                auth_method, auth = request.META["HTTP_AUTHORIZATION"].split(" ", 1)
+                auth_method, auth = request.headers['Authorization'].split(" ", 1)
                 if "basic" == auth_method.lower():
                     auth = auth.strip().decode("base64")
                     username, password = auth.split(":",1)

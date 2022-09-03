@@ -1,15 +1,16 @@
-from django.core.urlresolvers import reverse
-from django.shortcuts import render_to_response, get_object_or_404
+from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponseRedirect, Http404
 from django.template import RequestContext
 
 from django.contrib.auth.decorators import login_required
-#from django.contrib.syndication.views import feed
+# from django.contrib.syndication.views import feed
+from django.urls import reverse
 
 from notification.models import *
 from notification.decorators import basic_auth_required, simple_basic_auth_callback
 from notification.feeds import NoticeUserFeed
 from notification.backends import backends
+
 
 
 
@@ -39,7 +40,7 @@ def notices(request):
     """
     notices = Notice.objects.notices_for(request.user, on_site=True)
 
-    return render_to_response("notification/notices.html", {
+    return render(None, "notification/notices.html", {
         "notices": notices,
     }, context_instance=RequestContext(request))
 
@@ -95,7 +96,7 @@ def notice_settings(request, notice_types=None):
         "rows": settings_table,
     }
 
-    return render_to_response("notification/notice_settings.html", {
+    return render(None, "notification/notice_settings.html", {
             "notice_types": notice_types, "notice_settings": notice_settings,},
             context_instance=RequestContext(request))
 
@@ -130,7 +131,7 @@ def single(request, id, mark_seen=True):
         if mark_seen and notice.unseen:
             notice.unseen = False
             notice.save()
-        return render_to_response((
+        return render(None, (
             'notification/%s/single.html' % (notice.notice_type.label),
             'notification/single.html'
         ), {

@@ -1,4 +1,5 @@
-from django.utils import importlib
+from importlib import import_module
+
 from django.core.exceptions import ImproperlyConfigured
 
 
@@ -23,7 +24,7 @@ def load_backend(backend):
     i = path.rfind('.')
     module, attr = path[:i], path[i+1:]
     try:
-        mod = importlib.import_module(module)
+        mod = import_module(module)
     except ImportError as e:
         raise ImproperlyConfigured('Error importing notification backend %s: "%s"' % (module, e))
     except ValueError as e:

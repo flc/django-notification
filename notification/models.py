@@ -11,22 +11,23 @@ from django.db.models.query import QuerySet
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
 from django.core.mail import send_mail
-from django.core.urlresolvers import reverse
 from django.template import Context
 from django.template.loader import render_to_string
-from django.utils.translation import ugettext_lazy as _
-from django.utils.translation import ugettext, get_language, activate
+from django.utils.translation import gettext_lazy as _
+from django.utils.translation import activate, get_language, gettext
 
 from django.contrib.sites.models import Site
 from django.contrib.auth.models import User
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.contenttypes.models import ContentType
-from django.contrib.contenttypes import generic
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.urls import reverse
 
 from notification.backends import backend_field_choices, backends
 
 from .settings import QUEUE_ALL
 from .managers import NoticeSettingManager, NoticeManager, ObservedItemManager
+
 
 
 class LanguageStoreNotAvailable(Exception):
@@ -62,8 +63,8 @@ class NoticeSetting(models.Model):
     of a given type to a given backend.
     """
 
-    user = models.ForeignKey(User, verbose_name=_('user'))
-    notice_type = models.ForeignKey(NoticeType, verbose_name=_('notice type'))
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_('user'))
+    notice_type = models.ForeignKey(NoticeType, on_delete=models.CASCADE, verbose_name=_('notice type'))
     backend = models.CharField(_('backend'), max_length=128,
             choices=backend_field_choices)
     send = models.BooleanField(_('send'))
@@ -76,7 +77,7 @@ class NoticeSetting(models.Model):
         unique_together = ("user", "notice_type", "backend")
 
 
-class GzippedDictField(models.TextField, metaclass=models.SubfieldBase):
+class GzippedDictField(models.TextField):
     """
     Slightly different from a JSONField in the sense that the default
     value is a dictionary.
@@ -106,19 +107,19 @@ class GzippedDictField(models.TextField, metaclass=models.SubfieldBase):
 
 
 class Notice(models.Model):
-    recipient = models.ForeignKey(User, related_name="recieved_notices", verbose_name=_("recipient"))
-    sender = models.ForeignKey(User, null=True, related_name="sent_notices", verbose_name=_("sender"))
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name="recieved_notices", verbose_name=_("recipient"))
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name="sent_notices", verbose_name=_("sender"))
     message = models.TextField(_("message"))
-    notice_type = models.ForeignKey(NoticeType, verbose_name=_("notice type"))
+    notice_type = models.ForeignKey(NoticeType, on_delete=models.CASCADE, verbose_name=_("notice type"))
     added = models.DateTimeField(_("added"), default=datetime.datetime.now)
     unseen = models.BooleanField(_("unseen"), default=True)
     archived = models.BooleanField(_("archived"), default=False)
     on_site = models.BooleanField(_("on site"))
     data = GzippedDictField(blank=True, null=True)
 
-    content_type = models.ForeignKey(ContentType, null=True, blank=True)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE, null=True, blank=True)
     object_id = models.PositiveIntegerField(null=True, blank=True)
-    content_object = generic.GenericForeignKey('content_type', 'object_id')
+    content_object = GenericForeignKey('content_type', 'object_id')
 
     objects = NoticeManager()
 
@@ -253,7 +254,7 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None,
         context = Context({
             "recipient": user,
             "sender": sender,
-            "notice": ugettext(notice_type.display),
+            "notice": gettext(notice_type.display),
             "protocol": protocol,
             "current_site": current_site,
         })
@@ -307,7 +308,7 @@ def queue(users, label, extra_context=None, on_site=True, sender=None,
     batch = NoticeQueueBatch(pickled_data=pickle.dumps(notices).encode(
             "base64"))
     batch.save()
-    
+
     # TODO could also send a task per notice and drop the whole batch
     # thing
     from notification.tasks import emit_notice_batch
@@ -316,13 +317,13 @@ def queue(users, label, extra_context=None, on_site=True, sender=None,
 
 class ObservedItem(models.Model):
 
-    user = models.ForeignKey(User, verbose_name=_("user"))
+    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("user"))
 
-    content_type = models.ForeignKey(ContentType)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
-    observed_object = generic.GenericForeignKey("content_type", "object_id")
+    observed_object = GenericForeignKey("content_type", "object_id")
 
-    notice_type = models.ForeignKey(NoticeType, verbose_name=_("notice type"))
+    notice_type = models.ForeignKey(NoticeType, on_delete=models.CASCADE, verbose_name=_("notice type"))
 
     added = models.DateTimeField(_("added"), default=datetime.datetime.now)
 

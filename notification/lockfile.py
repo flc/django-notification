@@ -1,4 +1,3 @@
-
 """
 lockfile.py - Platform-independent advisory file locks.
 
@@ -48,7 +47,7 @@ Exceptions:
             NotMyLock - File was locked but not by the current thread/process
 """
 
-from __future__ import division
+
 
 import sys
 import socket
@@ -237,7 +236,7 @@ class LinkFileLock(LockBase):
     def acquire(self, timeout=None):
         try:
             open(self.unique_name, "wb").close()
-        except IOError:
+        except OSError:
             raise LockFailed
 
         end_time = time.time()
@@ -373,8 +372,8 @@ class SQLiteFileLock(LockBase):
 
     def __init__(self, path, threaded=True):
         LockBase.__init__(self, path, threaded)
-        self.lock_file = unicode(self.lock_file)
-        self.unique_name = unicode(self.unique_name)
+        self.lock_file = str(self.lock_file)
+        self.unique_name = str(self.unique_name)
 
         import sqlite3
         self.connection = sqlite3.connect(SQLiteFileLock.testdb)

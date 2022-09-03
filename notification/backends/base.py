@@ -2,7 +2,7 @@ from django.template import Context
 from django.template.loader import render_to_string
 from itertools import chain
 
-class NotificationBackend(object):
+class NotificationBackend:
     slug = None
     display_name = None
     sensitivity = 2
@@ -44,7 +44,7 @@ class NotificationBackend(object):
     def render_message(self, label, template, format_template, context):
         if 'message' not in context:
             context = Context(
-                dict(chain(*([data.iteritems() for data in context])))
+                dict(chain(*([iter(data.items()) for data in context])))
             )
             message = self.format_message(label, format_template, context)
             context.update({'message': message})

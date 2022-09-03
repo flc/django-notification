@@ -8,7 +8,7 @@ from notification.models import NoticeQueueBatch, Notice
 def emit_notice_batch(notice_batch_id, **kwargs):
     try:
         batch = NoticeQueueBatch.objects.get(id=notice_batch_id)
-    except NoticeQueueBatch.DoesNotExist, e:
+    except NoticeQueueBatch.DoesNotExist as e:
         emit_notice_batch.retry(countdown=2, exc=e)
     else:
         emit_batch(batch)

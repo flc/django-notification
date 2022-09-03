@@ -2,7 +2,7 @@ import datetime
 
 import base64
 try:
-    import cPickle as pickle
+    import pickle as pickle
 except ImportError:
     import pickle
 
@@ -76,15 +76,14 @@ class NoticeSetting(models.Model):
         unique_together = ("user", "notice_type", "backend")
 
 
-class GzippedDictField(models.TextField):
+class GzippedDictField(models.TextField, metaclass=models.SubfieldBase):
     """
     Slightly different from a JSONField in the sense that the default
     value is a dictionary.
     """
-    __metaclass__ = models.SubfieldBase
 
     def to_python(self, value):
-        if isinstance(value, basestring) and value:
+        if isinstance(value, str) and value:
             value = pickle.loads(base64.b64decode(value).decode('zlib'))
         elif not value:
             return {}
@@ -181,12 +180,12 @@ def create_notice_type(label, display, description, default=2, verbosity=1):
         if updated:
             notice_type.save()
             if verbosity > 1:
-                print "Updated %s NoticeType" % label
+                print("Updated %s NoticeType" % label)
     except NoticeType.DoesNotExist:
         NoticeType(label=label, display=display, description=description,
                 default=default).save()
         if verbosity > 1:
-            print "Created %s NoticeType" % label
+            print("Created %s NoticeType" % label)
 
 
 def get_notification_language(user):

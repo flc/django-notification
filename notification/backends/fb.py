@@ -11,7 +11,7 @@ log = logging.getLogger(__name__)
 
 class FacebookBackend(NotificationBackend):
     sensitivity = 3
-    slug = u"facebook"
+    slug = "facebook"
     def graph_api(self, user):
         """Return an instance of facebook.GraphAPI authorized with the `user`'s
         OAUth token.
@@ -24,7 +24,7 @@ class FacebookBackend(NotificationBackend):
         if not user:
             return
         try:
-            user_id = unicode(user.get_profile().facebook_id() or '')
+            user_id = str(user.get_profile().facebook_id() or '')
         except ObjectDoesNotExist:
             user_id = None
         return user_id
@@ -40,15 +40,15 @@ class FacebookBackend(NotificationBackend):
         """Return true if the sender has an OAuth token and the recipient has at
         least a Facebook OpenGraph ID.
         """
-        send = super(FacebookBackend, self).should_send(sender, recipient,
+        send = super().should_send(sender, recipient,
                 notice_type)
         return (send and self.facebook_token(sender)
                 and self.facebook_user_id(recipient))
 
 
 class FacebookWallPostBackend(FacebookBackend):
-    slug = u"facebook_wall_post"
-    display_name = u"Facebook Wall Post"
+    slug = "facebook_wall_post"
+    display_name = "Facebook Wall Post"
 
     def send(self, sender, recipient, notice_type, context, *args, **kwargs):
         if not self.should_send(sender, recipient, notice_type):

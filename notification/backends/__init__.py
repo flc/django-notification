@@ -24,9 +24,9 @@ def load_backend(backend):
     module, attr = path[:i], path[i+1:]
     try:
         mod = importlib.import_module(module)
-    except ImportError, e:
+    except ImportError as e:
         raise ImproperlyConfigured('Error importing notification backend %s: "%s"' % (module, e))
-    except ValueError, e:
+    except ValueError as e:
         raise ImproperlyConfigured('Error importing notification backends. Is NOTIFICATION_BACKENDS a correctly defined list or tuple?')
     try:
         cls = getattr(mod, attr)
@@ -39,7 +39,7 @@ def get_backends():
     try:
     	from django.conf import settings
     except ImportError:
-        return set([])
+        return set()
     backends = []
     for backend in getattr(settings, 'NOTIFICATION_BACKENDS', []):
         backends.append(load_backend(backend))

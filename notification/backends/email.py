@@ -6,15 +6,15 @@ from notification.backends.base import NotificationBackend
 
 class EmailBackend(NotificationBackend):
     sensitivity = 3
-    slug = u'email'
-    display_name = u'E-mail'
+    slug = 'email'
+    display_name = 'E-mail'
     formats = ['short.txt', 'full.txt']
 
     def email_for_user(self, recipient):
         return recipient.email
 
     def should_send(self, sender, recipient, notice_type, *args, **kwargs):
-        send = super(EmailBackend, self).should_send(sender, recipient,
+        send = super().should_send(sender, recipient,
                 notice_type)
         return send and self.email_for_user(recipient) != ''
 

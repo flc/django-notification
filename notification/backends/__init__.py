@@ -56,6 +56,6 @@ def get_backend_field_choices():
     for backend in backends:
         name = "%s.%s" % (backend.__module__, backend.__class__.__name__)
         choices.append((name, backend.display_name))
-    return set(choices)
+    return list(set(choices))
 
 backend_field_choices = get_backend_field_choices()

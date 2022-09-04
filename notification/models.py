@@ -49,7 +49,7 @@ class NoticeType(models.Model):
                 notice_type=self, backend=backend)
         return setting
 
-    def __unicode__(self):
+    def __str__(self):
         return self.label
 
     class Meta:
@@ -123,7 +123,7 @@ class Notice(models.Model):
 
     objects = NoticeManager()
 
-    def __unicode__(self):
+    def __str__(self):
         return self.message
 
     def archive(self):

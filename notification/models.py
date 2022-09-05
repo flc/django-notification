@@ -1,10 +1,7 @@
 import datetime
 
 import base64
-try:
-    import pickle as pickle
-except ImportError:
-    import pickle
+import pickle
 
 from django.db import models
 from django.db.models.query import QuerySet
@@ -27,7 +24,6 @@ from notification.backends import backend_field_choices, backends
 
 from .settings import QUEUE_ALL
 from .managers import NoticeSettingManager, NoticeManager, ObservedItemManager
-
 
 
 class LanguageStoreNotAvailable(Exception):
@@ -65,8 +61,7 @@ class NoticeSetting(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_('user'))
     notice_type = models.ForeignKey(NoticeType, on_delete=models.CASCADE, verbose_name=_('notice type'))
-    backend = models.CharField(_('backend'), max_length=128,
-            choices=backend_field_choices)
+    backend = models.CharField(_('backend'), max_length=128, choices=backend_field_choices)
     send = models.BooleanField(_('send'))
 
     objects = NoticeSettingManager()

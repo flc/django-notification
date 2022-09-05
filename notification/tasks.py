@@ -1,10 +1,10 @@
-from celery.decorators import task
+from celery import shared_task
 
 from notification.engine import emit_batch
 from notification.models import NoticeQueueBatch, Notice
 
 
-@task(ignore_result=True)
+@shared_task(ignore_result=True)
 def emit_notice_batch(notice_batch_id, **kwargs):
     try:
         batch = NoticeQueueBatch.objects.get(id=notice_batch_id)
@@ -14,6 +14,6 @@ def emit_notice_batch(notice_batch_id, **kwargs):
         emit_batch(batch)
 
 
-@task(ignore_result=True)
+@shared_task(ignore_result=True)
 def delete_obsolete_notices(**kwargs):
     return Notice.objects.delete_obsolete_notices()

@@ -12,17 +12,15 @@ from notification.feeds import NoticeUserFeed
 from notification.backends import backends
 
 
-
-
-#@basic_auth_required(realm="Notices Feed", callback_func=simple_basic_auth_callback)
-#def feed_for_user(request):
-    #"""
-    #An atom feed for all unarchived :model:`notification.Notice`s for a user.
-    #"""
-    #url = "feed/%s" % request.user.username
-    #return feed(request, url, {
-        #"feed": NoticeUserFeed,
-    #})
+# @basic_auth_required(realm="Notices Feed", callback_func=simple_basic_auth_callback)
+# def feed_for_user(request):
+#     """
+#     An atom feed for all unarchived :model:`notification.Notice`s for a user.
+#     """
+#     url = "feed/%s" % request.user.username
+#     return feed(request, url, {
+#         "feed": NoticeUserFeed,
+#     })
 
 
 @login_required
@@ -40,9 +38,7 @@ def notices(request):
     """
     notices = Notice.objects.notices_for(request.user, on_site=True)
 
-    return render(None, "notification/notices.html", {
-        "notices": notices,
-    }, context_instance=RequestContext(request))
+    return render(request, "notification/notices.html", {"notices": notices})
 
 
 @login_required
@@ -96,10 +92,10 @@ def notice_settings(request, notice_types=None):
         "rows": settings_table,
     }
 
-    return render(None, "notification/notice_settings.html", {
-            "notice_types": notice_types, "notice_settings": notice_settings,},
-            context_instance=RequestContext(request))
-
+    return render(request, "notification/notice_settings.html", {
+        "notice_types": notice_types,
+        "notice_settings": notice_settings,
+    })
 
 
 @login_required
@@ -131,12 +127,16 @@ def single(request, id, mark_seen=True):
         if mark_seen and notice.unseen:
             notice.unseen = False
             notice.save()
-        return render(None, (
-            'notification/%s/single.html' % (notice.notice_type.label),
-            'notification/single.html'
-        ), {
-            "notice": notice,
-        }, context_instance=RequestContext(request))
+        return render(
+            request,
+            (
+                'notification/%s/single.html' % (notice.notice_type.label),
+                'notification/single.html'
+            ),
+            {
+                "notice": notice,
+            }
+        )
     raise Http404
 
 

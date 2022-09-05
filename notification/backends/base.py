@@ -2,6 +2,7 @@ from django.template import Context
 from django.template.loader import render_to_string
 from itertools import chain
 
+
 class NotificationBackend:
     slug = None
     display_name = None
@@ -25,12 +26,15 @@ class NotificationBackend:
         else:
             context.autoescape = True
         return render_to_string(
-                    ('notification/%s/%s/%s' % (self.slug, label, template),
-                    'notification/%s/%s/%s' % (label, self.slug, template),
-                    'notification/%s/%s' % (label, template),
-                    'notification/%s' % template),
-                context_instance=context)
-    
+            (
+                'notification/%s/%s/%s' % (self.slug, label, template),
+                'notification/%s/%s/%s' % (label, self.slug, template),
+                'notification/%s/%s' % (label, template),
+                'notification/%s' % template
+            ),
+            context=context
+        )
+
     def should_send(self, sender, recipient, notice_type, *args, **kwargs):
         return (recipient.is_active and
                 notice_type.get_setting(recipient, self).send)

@@ -6,7 +6,7 @@ from django.template.defaultfilters import linebreaks, escape, striptags
 from django.utils.translation import gettext_lazy as _
 
 from django.urls import reverse
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from django.contrib.sites.models import Site
 
 from notification.models import Notice
@@ -48,7 +48,7 @@ class BaseNoticeFeed(Feed):
 class NoticeUserFeed(BaseNoticeFeed):
 
     def get_object(self, params):
-        return get_object_or_404(User, username=params[0].lower())
+        return get_object_or_404(get_user_model(), username=params[0].lower())
 
     def feed_id(self, user):
         return "%s://%s%s" % (

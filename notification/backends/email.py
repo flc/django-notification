@@ -14,15 +14,14 @@ class EmailBackend(NotificationBackend):
         return recipient.email
 
     def should_send(self, sender, recipient, notice_type, *args, **kwargs):
-        send = super().should_send(sender, recipient,
-                notice_type)
+        send = super().should_send(sender, recipient, notice_type)
         return send and self.email_for_user(recipient) != ''
 
     def render_subject(self, label, context):
         # Strip newlines from subject
-        return ''.join(self.render_message(label,
-                'email_subject.txt', 'short.txt', context
-                ).splitlines())
+        return ''.join(
+            self.render_message(label, 'email_subject.txt', 'short.txt', context).splitlines()
+        )
 
     def send(self, sender, recipient, notice_type, context, *args, **kwargs):
         if not self.should_send(sender, recipient, notice_type):
@@ -31,12 +30,11 @@ class EmailBackend(NotificationBackend):
         headers = kwargs.get('headers', {})
         headers.setdefault('Reply-To', settings.DEFAULT_FROM_EMAIL)
 
-        EmailMessage(self.render_subject(notice_type.label, context),
-                self.render_message(notice_type.label,
-                        'email_body.txt',
-                        'full.txt',
-                        context),
-                kwargs.get('from_email') or settings.DEFAULT_FROM_EMAIL,
-                [self.email_for_user(recipient)],
-                headers=headers).send()
+        EmailMessage(
+            subject=self.render_subject(notice_type.label, context),
+            body=self.render_message(notice_type.label, 'email_body.txt', 'full.txt', context),
+            from_email=kwargs.get('from_email') or settings.DEFAULT_FROM_EMAIL,
+            to=[self.email_for_user(recipient)],
+            headers=headers
+        ).send()
         return True

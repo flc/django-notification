@@ -1,6 +1,7 @@
 from importlib import import_module
 
 from django.core.exceptions import ImproperlyConfigured
+from django.conf import settings
 
 
 # Name for use in settings file --> name of module in "backends" directory.
@@ -37,10 +38,6 @@ def load_backend(backend):
     return cls()
 
 def get_backends():
-    try:
-    	from django.conf import settings
-    except ImportError:
-        return set()
     backends = []
     for backend in getattr(settings, 'NOTIFICATION_BACKENDS', []):
         backends.append(load_backend(backend))

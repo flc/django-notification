@@ -1,20 +1,19 @@
 import datetime
+import zlib
 
 import base64
 import pickle
 
+from django.apps import apps
 from django.db import models
 from django.db.models.query import QuerySet
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
-from django.core.mail import send_mail
-from django.template import Context
-from django.template.loader import render_to_string
 from django.utils.translation import gettext_lazy as _
 from django.utils.translation import activate, get_language, gettext
+from django.utils.encoding import force_str
 
 from django.contrib.sites.models import Site
-from django.contrib.auth.models import User
 from django.contrib.auth.models import AnonymousUser
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
@@ -31,18 +30,14 @@ class LanguageStoreNotAvailable(Exception):
 
 
 class NoticeType(models.Model):
-
     label = models.CharField(_('label'), max_length=40)
     display = models.CharField(_('display'), max_length=50)
     description = models.CharField(_('description'), max_length=100)
-
-    # by default only on for media with sensitivity less than or equal
-    # to this number
+    # by default only on for media with sensitivity less than or equal to this number
     default = models.IntegerField(_('default'))
 
     def get_setting(self, user, backend):
-        setting, _ = NoticeSetting.objects.get_or_create(user=user,
-                notice_type=self, backend=backend)
+        setting, _ = NoticeSetting.objects.get_or_create(user=user, notice_type=self, backend=backend)
         return setting
 
     def __str__(self):
@@ -58,8 +53,7 @@ class NoticeSetting(models.Model):
     Indicates, for a given user, whether to send notifications
     of a given type to a given backend.
     """
-
-    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_('user'))
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name=_('user'))
     notice_type = models.ForeignKey(NoticeType, on_delete=models.CASCADE, verbose_name=_('notice type'))
     backend = models.CharField(_('backend'), max_length=128, choices=backend_field_choices)
     send = models.BooleanField(_('send'))
@@ -80,32 +74,41 @@ class GzippedDictField(models.TextField):
 
     def to_python(self, value):
         if isinstance(value, str) and value:
-            value = pickle.loads(base64.b64decode(value).decode('zlib'))
+            value = pickle.loads(zlib.decompress(base64.b64decode(value)))
         elif not value:
             return {}
         return value
 
     def get_prep_value(self, value):
-        if value is None: return
-        return base64.b64encode(pickle.dumps(value).encode('zlib'))
+        if value is None:
+            return
+        return force_str(base64.b64encode(zlib.compress(pickle.dumps(value))))
 
     def value_to_string(self, obj):
         value = self._get_val_from_obj(obj)
         return self.get_db_prep_value(value)
 
-    def south_field_triple(self):
-        "Returns a suitable description of this field for South."
-        from south.modelsinspector import introspector
-        field_class = "django.db.models.fields.TextField"
-        args, kwargs = introspector(self)
-        return (field_class, args, kwargs)
-
 
 class Notice(models.Model):
-    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name="recieved_notices", verbose_name=_("recipient"))
-    sender = models.ForeignKey(User, on_delete=models.CASCADE, null=True, related_name="sent_notices", verbose_name=_("sender"))
+    recipient = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="recieved_notices",
+        verbose_name=_("recipient")
+    )
+    sender = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True, blank=True,
+        related_name="sent_notices",
+        verbose_name=_("sender")
+    )
     message = models.TextField(_("message"))
-    notice_type = models.ForeignKey(NoticeType, on_delete=models.CASCADE, verbose_name=_("notice type"))
+    notice_type = models.ForeignKey(
+        NoticeType,
+        on_delete=models.CASCADE,
+        verbose_name=_("notice type")
+    )
     added = models.DateTimeField(_("added"), default=datetime.datetime.now)
     unseen = models.BooleanField(_("unseen"), default=True)
     archived = models.BooleanField(_("archived"), default=False)
@@ -192,9 +195,8 @@ def get_notification_language(user):
     """
     if getattr(settings, "NOTIFICATION_LANGUAGE_MODULE", False):
         try:
-            app_label, model_name = (
-                    settings.NOTIFICATION_LANGUAGE_MODULE.split('.'))
-            model = models.get_model(app_label, model_name)
+            app_label, model_name = settings.NOTIFICATION_LANGUAGE_MODULE.split('.')
+            model = apps.get_model(app_label, model_name)
             language_model = model._default_manager.get(user__id__exact=user.id)
             if hasattr(language_model, "language"):
                 return language_model.language
@@ -203,8 +205,7 @@ def get_notification_language(user):
     raise LanguageStoreNotAvailable
 
 
-def send_now(users, label, extra_context=None, on_site=True, sender=None,
-        **kwargs):
+def send_now(users, label, extra_context=None, on_site=True, sender=None, **kwargs):
     """
     Creates a new notice.
 
@@ -224,12 +225,10 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None,
     try:
         notice_type = NoticeType.objects.get(label=label)
     except NoticeType.DoesNotExist:
-        raise NoticeType.DoesNotExist("'label' must be a label of an " +
-                                      "existing NoticeType")
+        raise NoticeType.DoesNotExist("'label' must be a label of an " + "existing NoticeType")
 
     protocol = getattr(settings, "DEFAULT_HTTP_PROTOCOL", "http") + "://"
     current_site = Site.objects.get_current()
-
     current_language = get_language()
 
     for user in users:
@@ -246,18 +245,17 @@ def send_now(users, label, extra_context=None, on_site=True, sender=None,
             activate(language)
 
         # update context with user specific translations
-        context = Context({
+        context = {
             "recipient": user,
             "sender": sender,
             "notice": gettext(notice_type.display),
             "protocol": protocol,
             "current_site": current_site,
-        })
+        }
         context.update(extra_context)
 
         for backend in backends:
-            backend.send(sender, user, notice_type, context, on_site=on_site,
-                    **kwargs)
+            backend.send(sender, user, notice_type, context, on_site=on_site, **kwargs)
 
     # reset environment to original language
     activate(current_language)
@@ -284,8 +282,7 @@ def send(*args, **kwargs):
             return send_now(*args, **kwargs)
 
 
-def queue(users, label, extra_context=None, on_site=True, sender=None,
-        **kwargs):
+def queue(users, label, extra_context=None, on_site=True, sender=None, **kwargs):
     """
     Queue the notification in NoticeQueueBatch. This allows for large amounts
     of user notifications to be deferred to a seperate process running outside
@@ -300,19 +297,16 @@ def queue(users, label, extra_context=None, on_site=True, sender=None,
     notices = []
     for user in users:
         notices.append((user, label, extra_context, on_site, sender, kwargs))
-    batch = NoticeQueueBatch(pickled_data=pickle.dumps(notices).encode(
-            "base64"))
+    batch = NoticeQueueBatch(pickled_data=force_str(base64.b64encode(pickle.dumps(notices))))
     batch.save()
 
-    # TODO could also send a task per notice and drop the whole batch
-    # thing
+    # TODO could also send a task per notice and drop the whole batch thing
     from notification.tasks import emit_notice_batch
     emit_notice_batch.delay(batch.id)
 
 
 class ObservedItem(models.Model):
-
-    user = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name=_("user"))
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name=_("user"))
 
     content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
     object_id = models.PositiveIntegerField()
@@ -363,8 +357,7 @@ def stop_observing(observed, observer, signal="post_save"):
     observed_item.delete()
 
 
-def send_observation_notices_for(observed, signal='post_save',
-        extra_context=None):
+def send_observation_notices_for(observed, signal='post_save', extra_context=None):
     """
     Send a notice for each registered user about an observed object.
     """
@@ -380,8 +373,7 @@ def is_observing(observed, observer, signal="post_save"):
     if isinstance(observer, AnonymousUser):
         return False
     try:
-        observed_items = ObservedItem.objects.get_for(observed, observer,
-                signal)
+        observed_items = ObservedItem.objects.get_for(observed, observer, signal)
         return True
     except ObservedItem.DoesNotExist:
         return False

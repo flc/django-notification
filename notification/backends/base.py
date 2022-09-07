@@ -21,10 +21,6 @@ class NotificationBackend:
         are fully rendered templates with the given context.
         """
         # conditionally turn off autoescaping for .txt extensions in format
-        if template.endswith(".txt"):
-            context.autoescape = False
-        else:
-            context.autoescape = True
         return render_to_string(
             (
                 'notification/%s/%s/%s' % (self.slug, label, template),
@@ -36,8 +32,7 @@ class NotificationBackend:
         )
 
     def should_send(self, sender, recipient, notice_type, *args, **kwargs):
-        return (recipient.is_active and
-                notice_type.get_setting(recipient, self).send)
+        return recipient.is_active and notice_type.get_setting(recipient, self).send
 
     def display_name(self):
         raise NotImplementedError
@@ -47,9 +42,6 @@ class NotificationBackend:
 
     def render_message(self, label, template, format_template, context):
         if 'message' not in context:
-            context = Context(
-                dict(chain(*([iter(data.items()) for data in context])))
-            )
             message = self.format_message(label, format_template, context)
             context.update({'message': message})
         return self.format_message(label, template, context)

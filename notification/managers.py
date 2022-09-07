@@ -8,25 +8,20 @@ from .settings import OBSOLETE_DAYS
 
 class NoticeSettingManager(models.Manager):
 
-    def get_or_create(self, user=None, notice_type=None, backend=None,
-                      **kwargs):
+    def get_or_create(self, user=None, notice_type=None, backend=None, **kwargs):
         try:
-            return self.get(user=user,
-                            notice_type=notice_type,
-                            backend=backend.path()), False
+            return self.get(user=user, notice_type=notice_type, backend=backend.path()), False
         except self.model.DoesNotExist:
             default = backend.sensitivity <= notice_type.default
-            setting = self.create(user=user,
-                                  notice_type=notice_type,
-                                  backend=backend.path(),
-                                  send=default)
+            setting = self.create(
+                user=user, notice_type=notice_type, backend=backend.path(), send=default
+            )
             return setting, True
 
 
 class NoticeManager(models.Manager):
 
-    def notices_for(self, user, archived=False, unseen=None, on_site=None,
-                    sent=False):
+    def notices_for(self, user, archived=False, unseen=None, on_site=None, sent=False):
         """
         returns Notice objects for the given user.
 

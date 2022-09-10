@@ -88,6 +88,9 @@ class GzippedDictField(models.TextField):
         value = self._get_val_from_obj(obj)
         return self.get_db_prep_value(value)
 
+    def from_db_value(self, value, expression, connection):
+        return self.to_python(value)
+
 
 class Notice(models.Model):
     recipient = models.ForeignKey(

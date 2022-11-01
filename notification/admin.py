@@ -4,15 +4,22 @@ from notification.models import NoticeType, NoticeSetting, Notice, ObservedItem,
 
 
 class NoticeTypeAdmin(admin.ModelAdmin):
-    list_display = ["label", "display", "description", "default"]
+    list_display = ['label', 'display', 'description', 'default']
+    search_fields = ['label']
 
 
 class NoticeSettingAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'notice_type', 'backend', 'send')
+    list_display = ('id', 'user', 'user_id', 'notice_type', 'backend', 'backend', 'send')
+    search_fields = ['=notice_type__label', '=user__username']
+    list_filter = (
+        'backend',
+        'send',
+    )
 
 
 class NoticeAdmin(admin.ModelAdmin):
-    list_display = ["message", "recipient", "sender", "notice_type", "added", "unseen", "archived"]
+    list_display = ['message', 'recipient', 'recipient_id', 'sender', 'notice_type', 'added', 'unseen', 'archived']
+    search_fields = ['=notice_type__label', 'recipient__username']
 
 
 admin.site.register(NoticeQueueBatch)
